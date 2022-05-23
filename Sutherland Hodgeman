@@ -1,0 +1,146 @@
+#include<GL/glut.h>
+#include<stdlib.h>
+#include<math.h>
+#include<cstdlib>
+#include<iostream>
+using namespace std;
+const int MAX_POINTS=20; 
+double y_max = 100, y_min = 50, x_max = 100, x_min = 50;//Old
+double ny_max=300,ny_min=200,nx_max=300,nx_min= 200;//New
+int n_sp=4,n_cw=4;
+struct vertex{
+float x;
+float y; };
+vertex cw[] = { {50,50},{50,100},{100,100},{100,50} };
+vertex sp[] = { {40,75},{75,110},{110,75},{75,40} }; 
+void init() {
+	glLoadIdentity();
+	glClearColor(1.0, 1.0, 1.0, 1.0);
+	glMatrixMode(GL_PROJECTION); 
+	gluOrtho2D(0, 500, 0, 500);
+	glMatrixMode(GL_MODELVIEW);
+}
+void draw_lineAndPort(double y_max, double y_min, double x_max, double x_min) 
+{
+	glColor3d(0, 0, 0);
+	glBegin(GL_LINE_LOOP);
+	glVertex2d(x_min, y_min);
+	glVertex2d(x_max, y_min);
+	glVertex2d(x_max, y_max);
+	glVertex2d(x_min, y_max);
+	glEnd();
+}
+void draw_poly(vertex vlist[], int n) 
+{
+	glColor3d(1, 0, 0);
+	glBegin(GL_POLYGON);
+	for (int i = 0; i < n; i++) 
+	{
+		glVertex2d(vlist[i].x, vlist[i].y);
+		glVertex2d(vlist[(i + 1) % n].x, vlist[(i + 1) % n].y);
+	}
+	glEnd();
+}
+int x_intersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) {
+	int num = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4);
+	int den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+	return num / den;
+}
+int y_intersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4,int y4) 
+{
+	int num = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4);
+	int den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+	return num / den;
+}
+void clip(vertex poly_points[], int& poly_size, int x1, int y1, int x2,int y2) 
+{
+	int new_points[MAX_POINTS][2], new_poly_size = 0;
+	for (int i = 0; i < poly_size; i++) 
+	{
+		//i and k form a line in polygon
+		int k = (i + 1) % poly_size;
+		int ix = poly_points[i].x, iy = poly_points[i].y;
+		int kx = poly_points[k].x, ky = poly_points[k].y;
+		//Calculating position of first point w.r.t. clipper line
+		int i_pos = (x2 - x1) * (iy - y1) - (y2 - y1) * (ix - x1);
+		//Calculating position of second point w.r.t. clipper line
+		int k_pos = (x2 - x1) * (ky - y1) - (y2 - y1) * (kx - x1);
+		//Case 1: When both points are inside
+		if(i_pos < 0 && k_pos < 0) 
+		{
+			//Only second point is added
+			new_points[new_poly_size][0] = kx;
+			new_points[new_poly_size][1] = ky;
+			new_poly_size++;
+		}
+		//Case 2: When only first point is outside 
+		else if(i_pos >= 0 && k_pos < 0)
+		{
+			//Point of intersection with edge and the second point is added
+			new_points[new_poly_size][0] = x_intersect(x1, y1, x2, y2, ix, iy, kx, ky);
+			new_points[new_poly_size][1] = y_intersect(x1, y1, x2, y2, ix, iy, kx, ky);
+			new_poly_size++;
+			new_points[new_poly_size][0] = kx;
+			new_points[new_poly_size][1] = ky;
+			new_poly_size++;
+		}
+		//Case 3: When only second point is outside 
+		else if(i_pos < 0 && k_pos >= 0) {
+			//Only point of intersection with edge is added
+			new_points[new_poly_size][0] = x_intersect(x1, y1, x2, y2, ix, iy, kx, ky);
+			new_points[new_poly_size][1] = y_intersect(x1, y1, x2, y2, ix, iy, kx, ky);
+			new_poly_size++;
+		}
+		//Case 4: When both points are outside 
+		else
+		{
+			//No points are added
+		}
+	}
+	poly_size = new_poly_size;
+	for (int i = 0; i < poly_size; i++) 
+	{
+		poly_points[i].x = new_points[i][0];
+		poly_points[i].y = new_points[i][1];
+	}
+}
+void sutherlandhodgeman() 
+{
+	vertex sp1[20]; 
+	for (int i = 0; i < 4; i++) 
+	{
+		int k = (i + 1) % 4;
+		clip(sp, n_sp, cw[i].x, cw[i].y, cw[k].x, cw[k].y);
+	}
+	double scale_x = (nx_max - nx_min) / (x_max - x_min); 
+	double scale_y = (ny_max - ny_min) / (y_max - y_min); 
+	for (int i = 0; i < n_sp; i++) 
+	{
+		sp1[i].x = nx_min + (sp[i].x - x_min) * scale_x;
+		sp1[i].y = ny_min + (sp[i].y - y_min) * scale_y;
+	}
+	draw_lineAndPort(ny_max, ny_min, nx_max, nx_min); 
+	draw_lineAndPort(y_max, y_min, x_max, x_min); 
+	draw_poly(sp1, n_sp); 
+	for (int i = 0; i < n_sp; i++)
+		cout << '(' << sp[i].x << "," << sp[i].y << ")";
+}
+void display() {
+	glClear(GL_COLOR_BUFFER_BIT);
+	draw_lineAndPort(y_max, y_min, x_max, x_min); 
+	draw_poly(sp, 4);
+	sutherlandhodgeman();
+	glFlush();
+}
+int main(int argc, char** argv) 
+{
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+	glutInitWindowPosition(0, 0);
+	glutInitWindowSize(500, 500);
+	glutCreateWindow("SutherlandHodgeman");
+	glutDisplayFunc(display);
+	init();
+	glutMainLoop();
+	return 0;
+}
