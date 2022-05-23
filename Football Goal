@@ -1,0 +1,127 @@
+#include<GL/glut.h>
+#include<stdlib.h>
+#include<string.h>
+char str1[] = "GOAL"; 
+float center_x = 300; 
+float center_y = 110; 
+float current_angle = 0; 
+GLfloat BLACK[] = { 0,0,0 };
+void init() {
+	glLoadIdentity();
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glMatrixMode(GL_PROJECTION);
+	gluOrtho2D(0, 700, 0, 600);
+	glMatrixMode(GL_MODELVIEW);
+}
+void output(char* string) {
+	glColor3f(1, 1, 1);
+	glRasterPos2f(250, 550); 
+	int len, i; 
+	len = (int)strlen(string); 
+	for (i = 0; i < len; i++) 
+	{
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, string[i]);
+	}
+}
+float cal_y(int x) 
+{
+	float y = 6010 / 11 + ((-2 * x) / 11);
+	return y;
+}
+float cal_y1(int x) 
+{
+	float y = 5290 / 11 + ((-2 * x) / 11);
+	return y;
+}
+float cal_x(int y) 
+{
+	float x = (1530 + y) / 7;
+	return x;
+}
+float cal_x1(int y) 
+{
+	float x = (3505 + y) / 7;
+	return x;
+}
+void goal() {
+	glPushMatrix();
+	glTranslated(center_x, center_y, 29); 
+	glRotatef(current_angle, 1.0, 0.0, 0.0); 
+	glRotatef(current_angle, 0.0, 1.0, 0.0); 
+	glColor3f(0, 0, 0);
+	glutSolidSphere(30, 30, 30);
+	glPopMatrix();
+}
+void display() {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+	glColor3f(0, 212.0 / 255, 0);
+	glBegin(GL_POLYGON);
+	glVertex2f(70, 50);
+	glVertex2f(600, -10);
+	glVertex2f(570, 400);
+	glVertex2f(270, 450); 
+	glEnd();
+	glColor3f(1, 1, 1); 
+	glLineWidth(5);
+	glBegin(GL_LINES);
+	glVertex2f(280, 430);
+	glVertex2f(290, 500); 
+	glEnd();
+	glColor3f(1, 1, 1); 
+	glLineWidth(5);
+	glBegin(GL_LINES);
+	glVertex2f(555, 380);
+	glVertex2f(565, 450); 
+	glEnd();
+	glColor3f(1, 1, 1); 
+	glLineWidth(5);
+	glBegin(GL_LINES);
+	glVertex2f(290, 500);
+	glVertex2f(565, 450); 
+	glEnd(); 
+	for (int i = 290; i < 555 - 5; i += 10) 
+	{
+		glColor3f(1, 1, 1);
+		glLineWidth(1);
+		glBegin(GL_LINES);
+		glVertex2f(i, cal_y1(i));
+		glVertex2f(i + 10, cal_y(i + 10) + 2); 
+		glEnd();
+	}
+	for (int i = 443; i > 380; i -= 7) 
+	{
+		glColor3f(1, 1, 1);
+		glLineWidth(1);
+		glBegin(GL_LINES);
+		glVertex2f(cal_x(i + 50), i + 50);
+		glVertex2f(cal_x1(i), i);
+		glEnd();
+	}
+	if (cal_y1(center_x) < center_y) 
+	{
+		output(str1);
+	}
+	else {
+		goal();
+		center_x += 0.06;
+		center_y += 0.1;
+		current_angle += 0.4;
+	}
+	glFlush();
+	glutSwapBuffers();
+	glutPostRedisplay();
+}
+void idle() { display(); }
+int main(int argc, char** argv) 
+{
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+	glutInitWindowSize(700, 600);
+	glutInitWindowPosition(10, 10);
+	glutCreateWindow("Football");
+	init();
+	glutIdleFunc(idle);
+	glutDisplayFunc(display);
+	glutMainLoop();
+	return 0;
+}
